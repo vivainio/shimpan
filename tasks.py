@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -25,6 +26,12 @@ def do_lint(_args: list[str]) -> None:
     """Check with ruff"""
     c(["ruff", "check"])
 
+
+def do_publish(args) -> None:
+    shutil.rmtree("dist", ignore_errors=True)
+    c(["fistbump", "--check"])
+    c(["python", "-m", "build"])
+    c(["twine", "upload", "dist/*"])
 
 def do_test(_args: list[str]) -> None:
     c("pytest")
