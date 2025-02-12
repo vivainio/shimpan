@@ -10,7 +10,7 @@ shimpan = ["shim.exe"]
 
 [project]
 name = "shimpan"
-version = "1.1.0"
+version = "1.2.0"
 description = "shimpan"
 readme = "README.md"
 
