@@ -33,6 +33,7 @@ def do_publish(args) -> None:
     c(["python", "-m", "build"])
     c(["twine", "upload", "dist/*"])
 
+
 def do_test(_args: list[str]) -> None:
     c("pytest")
 
