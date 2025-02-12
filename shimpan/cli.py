@@ -50,6 +50,7 @@ def download_and_shim_application(args: argparse.Namespace):
         print(f"{apps_target_dir} already exists. Delete it first")
         return
 
+    to = Path(args.to).expanduser().absolute() if args.to else Path().absolute()
     print("Trying to extract at ", apps_target_dir)
 
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -70,19 +71,20 @@ def download_and_shim_application(args: argparse.Namespace):
             return
 
         for exe in exes:
-            create_shims(exe, Path().absolute())
+            create_shims(exe, to)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Shimpan: Create shims for exes that are in path"
     )
+
     subparsers = parser.add_subparsers(dest="command", required=True)
     create = subparsers.add_parser(
         "create", help="Create a shim for an executable. The lowest level action"
     )
     create.add_argument("exe", type=str, help="Target path to the application")
-    create.add_argument(
+    parser.add_argument(
         "--to",
         type=str,
         help="The directory where the shim files (.exe, .shim) will be created",
@@ -99,6 +101,11 @@ def main():
     )
     get.add_argument(
         "--force", action="store_true", help="Delete the target directory if it exists"
+    )
+    get.add_argument(
+        "--to",
+        type=str,
+        help="The directory where the shim files (.exe, .shim) will be created",
     )
 
     args = parser.parse_args()
