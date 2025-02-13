@@ -8,14 +8,14 @@ from urllib.request import urlretrieve
 import tempfile
 import zipfile
 
-MASTER_SHIM_EXE = Path(__file__).parent / "shim.exe"
 
-
-def create_shims(exe: Path, to: Path, shim_type):
+def create_shims(exe: Path, to: Path, shim_type: str):
     shim = to / f"{exe.stem}.exe"
 
-    shutil.copy(MASTER_SHIM_EXE, shim)
-    print("Shims (.exe, .shim) created at ", shim)
+    shim_source = Path(__file__).parent / f"shim_{shim_type}.exe"
+
+    shutil.copy(shim_source, shim)
+    print("Shims (.exe, .shim) created at", shim)
 
     shim.with_suffix(".shim").write_text(f"path = {exe.absolute()}\n")
 
@@ -23,13 +23,10 @@ def create_shims(exe: Path, to: Path, shim_type):
 def direct_shim_create(args: argparse.Namespace):
     exe = Path(args.exe)
     if not exe.exists():
-        print(f"{exe} does not exist")
+        print(f"Error: Target executable '{exe}' does not exist")
         return
 
-    if args.to:
-        to = Path(args.to)
-    else:
-        to = Path().absolute()
+    to = Path(args.to) if args.to else Path().absolute()
 
     create_shims(exe, to, args.shim)
 
@@ -80,7 +77,12 @@ def main() -> None:
         description=f"Shimpan: Create shims for exes that are in path. Version: {version}"
     )
 
-    parser.add_argument("--shim", choices=["alt", "scoop"], default="scoop", help="Shim type. 'alt' ")
+    parser.add_argument(
+        "--shim",
+        choices=["alt", "scoop"],
+        default="scoop",
+        help="Shim type. Default is 'scoop'",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     create = subparsers.add_parser(
         "create", help="Create a shim for an executable. The lowest level action"
