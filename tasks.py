@@ -1,14 +1,13 @@
-"""Simple, fast and fun task runner, not unlike gulp / grunt (but zero dep)"""
+"""Simple, fast and fun task runner, not unlike gulp / grunt (but zero dep)."""
 
-import os
-from pathlib import Path
+import inspect
 import shlex
 import shutil
 import subprocess
 import sys
 import textwrap
 from argparse import ArgumentParser, Namespace
-import inspect
+from pathlib import Path
 from types import ModuleType
 
 # add tasks from other modules by adding modules to TASK_MODULES list
@@ -71,7 +70,7 @@ def _is_argparse_function(f) -> bool:
 def _collect_args_from_argparse_function(f) -> ArgumentParser:
     parser = f(None)
     if not isinstance(parser, ArgumentParser):
-        raise ValueError(
+        raise TypeError(
             "Function taking argparse.Namespace must return ArgumentParser when called with None"
         )
     parser.prog = "python tasks.py " + f.__name__[3:]

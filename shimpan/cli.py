@@ -1,29 +1,29 @@
 import argparse
-from pathlib import Path
-import shutil
-import sys
 import os
-from urllib.request import urlretrieve
-
+import shutil
 import tempfile
 import zipfile
+from pathlib import Path
+from urllib.request import urlretrieve
+
+emit = print
 
 
-def create_shims(exe: Path, to: Path, shim_type: str):
+def create_shims(exe: Path, to: Path, shim_type: str) -> None:
     shim = to / f"{exe.stem}.exe"
 
     shim_source = Path(__file__).parent / f"shim_{shim_type}.exe"
 
     shutil.copy(shim_source, shim)
-    print("Shims (.exe, .shim) created at", shim)
+    emit("Shims (.exe, .shim) created at", shim, "pointing to", exe)
 
     shim.with_suffix(".shim").write_text(f"path = {exe.absolute()}\n")
 
 
-def direct_shim_create(args: argparse.Namespace):
+def direct_shim_create(args: argparse.Namespace) -> None:
     exe = Path(args.exe)
     if not exe.exists():
-        print(f"Error: Target executable '{exe}' does not exist")
+        emit(f"Error: Target executable '{exe}' does not exist")
         return
 
     to = Path(args.to) if args.to else Path().absolute()
@@ -31,7 +31,7 @@ def direct_shim_create(args: argparse.Namespace):
     create_shims(exe, to, args.shim)
 
 
-def download_and_shim_application(args: argparse.Namespace):
+def download_and_shim_application(args: argparse.Namespace) -> None:
     url = args.url
     # download and unzip
 
@@ -44,11 +44,13 @@ def download_and_shim_application(args: argparse.Namespace):
         shutil.rmtree(apps_target_dir, ignore_errors=True)
 
     if apps_target_dir.exists():
-        print(f"{apps_target_dir} already exists. Delete it first")
+        emit(
+            f"{apps_target_dir} already exists. Delete it first by passing --force parameter"
+        )
         return
 
     to = Path(args.to).expanduser().absolute() if args.to else Path().absolute()
-    print("Trying to extract at ", apps_target_dir)
+    emit("Trying to extract at ", apps_target_dir)
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmpdir = Path(tmpdirname)
@@ -64,7 +66,7 @@ def download_and_shim_application(args: argparse.Namespace):
 
         exes = list(apps_target_dir.glob("**/*.exe"))
         if not exes:
-            print("No exe found in the zip file. Not creating shims")
+            emit("No exe found in the zip file. Not creating shims")
             return
 
         for exe in exes:
