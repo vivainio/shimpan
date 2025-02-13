@@ -62,7 +62,7 @@ path = C:\Users\villevai\AppData\Local\Programs\pgAdmin 4\runtime\pgAdmin4.exe
 
 Calling pgAdmin4.exe reads the shim file and executes the pointed executable. 
 
-## Eeasy installation of third party apps
+## Easy installation of third party apps
 
 You can use Shimpan as a lightweight way to publish your app without using Scoop, Chocolatey or Winget.
 
@@ -76,3 +76,8 @@ This Unzips it to  USER\AppData\Local\Programs\heymars-1.2.1 and creates .exe sh
 
 If you omit the --to argument, it creates the shims in current directory. You can then try it copy them wherever you want (probably some nice place on your PATH).
 The shims don't care where they are, they only care about where the .shim file points at.
+
+### What's deal with the name?
+
+I planned to call it Shimpanz or Shimpans, but that would have been gringe. Henge Shimpan.
+
