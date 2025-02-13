@@ -11,7 +11,7 @@ import zipfile
 MASTER_SHIM_EXE = Path(__file__).parent / "shim.exe"
 
 
-def create_shims(exe: Path, to: Path):
+def create_shims(exe: Path, to: Path, shim_type):
     shim = to / f"{exe.stem}.exe"
 
     shutil.copy(MASTER_SHIM_EXE, shim)
@@ -31,7 +31,7 @@ def direct_shim_create(args: argparse.Namespace):
     else:
         to = Path().absolute()
 
-    create_shims(exe, to)
+    create_shims(exe, to, args.shim)
 
 
 def download_and_shim_application(args: argparse.Namespace):
@@ -71,14 +71,16 @@ def download_and_shim_application(args: argparse.Namespace):
             return
 
         for exe in exes:
-            create_shims(exe, to)
+            create_shims(exe, to, args.shim)
 
 
-def main():
+def main() -> None:
+    version = Path(__file__).parent.joinpath("version.txt").read_text().strip()
     parser = argparse.ArgumentParser(
-        description="Shimpan: Create shims for exes that are in path"
+        description=f"Shimpan: Create shims for exes that are in path. Version: {version}"
     )
 
+    parser.add_argument("--shim", choices=["alt", "scoop"], default="scoop", help="Shim type. 'alt' ")
     subparsers = parser.add_subparsers(dest="command", required=True)
     create = subparsers.add_parser(
         "create", help="Create a shim for an executable. The lowest level action"
