@@ -16,5 +16,6 @@ tags = ["tagtest"]
 url = "https://github.com/vivainio/heymars/releases/download/v1.2.1/heymars-1.2.1.zip"
 tags = ["tagtest"]
 unzipTo = "./ziptarget"
-
+shims = "./shimdir"
+shimType = "scoop"
 

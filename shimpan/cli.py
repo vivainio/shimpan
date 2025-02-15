@@ -49,6 +49,17 @@ def create_shims_in_tree(root: Path, to: Path, shim_type: str) -> bool:
     return bool(exes)
 
 
+def get_app_target_dir(url: str, args: argparse.Namespace) -> Path:
+    prog_files = (
+        Path(args.appdir)
+        if args.appdir
+        else Path(os.environ["LOCALAPPDATA"]) / "Programs"
+    )
+    return prog_files.joinpath(
+        args.name if args.name else Path(url.split("/")[-1]).stem
+    )
+
+
 def download_and_shim_application(args: argparse.Namespace) -> None:
     url = args.url
     # download and unzip
@@ -72,7 +83,7 @@ def download_and_shim_application(args: argparse.Namespace) -> None:
         return
 
     to = Path(args.to).expanduser().absolute() if args.to else Path().absolute()
-    emit("Trying to extract at ", apps_target_dir)
+    emit("Trying to extract at", apps_target_dir)
     is_url = url.startswith("http")
     zip_path = cached_download(url) if is_url else Path(url)
 
@@ -101,9 +112,21 @@ def cached_download(url: str) -> Path:
     return cache_file
 
 
+def download_and_extract(url: str, to: Path):
+    target = cached_download(url)
+    with zipfile.ZipFile(target, "r") as zip_ref:
+        zip_ref.extractall(to)
+
+
 def run_recipe(recipefile: Path, name: str, args: argparse.Namespace) -> None:
     root = recipefile.parent
     d = tomllib.load(recipefile.open("rb"))
+
+    def relative_to_root(p: str | None) -> Path | None:
+        if not p:
+            return None
+        pth = Path(p).expanduser()
+        return root / pth if not pth.is_absolute() else pth
 
     for k, v in d.items():
         if k != name and name not in v.get("tags", []):
@@ -116,13 +139,21 @@ def run_recipe(recipefile: Path, name: str, args: argparse.Namespace) -> None:
             target = cached_download(url)
             shutil.copy(target, root / save_as)
 
-        unzip_to = v.get("unzipTo", None)
+        unzip_to = relative_to_root(v.get("unzipTo"))
         if unzip_to:
             emit(f"Unzip {url} to {unzip_to}")
-            target = cached_download(url)
+            download_and_extract(url, unzip_to)
 
-            with zipfile.ZipFile(target, "r") as zip_ref:
-                zip_ref.extractall(root / unzip_to)
+        shims_to = relative_to_root(v.get("shims"))
+        if shims_to:
+            shims_to.mkdir(exist_ok=True, parents=True)
+            if unzip_to:
+                emit(f"Create shims for {unzip_to} in {shims_to}")
+                create_shims_in_tree(
+                    unzip_to, shims_to, v.get("shimType", args.shim)
+                )
+            else:
+                emit("Error: shims specified without unzipTo")
 
 
 def main(argv: list[str]) -> None:
