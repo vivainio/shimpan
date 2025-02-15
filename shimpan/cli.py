@@ -31,6 +31,7 @@ def direct_shim_create(args: argparse.Namespace) -> None:
 
     create_shims(exe, to, args.shim)
 
+
 def create_shims_in_tree(root: Path, to: Path, shim_type: str) -> bool:
     exes = list(root.glob("**/*.exe"))
     for exe in exes:
@@ -38,11 +39,16 @@ def create_shims_in_tree(root: Path, to: Path, shim_type: str) -> bool:
 
     return bool(exes)
 
+
 def download_and_shim_application(args: argparse.Namespace) -> None:
     url = args.url
     # download and unzip
 
-    prog_files = Path(args.appdir) if args.appdir else Path(os.environ["LOCALAPPDATA"]) / "Programs"
+    prog_files = (
+        Path(args.appdir)
+        if args.appdir
+        else Path(os.environ["LOCALAPPDATA"]) / "Programs"
+    )
     apps_target_dir = prog_files.joinpath(
         args.name if args.name else Path(url.split("/")[-1]).stem
     )
@@ -86,7 +92,11 @@ def main(argv: list[str]) -> None:
     )
 
     def add_shared_args(parser: argparse.ArgumentParser) -> None:
-        parser.add_argument("--to", type=str, help="The directory where the shim files (.exe, .shim) will be created")
+        parser.add_argument(
+            "--to",
+            type=str,
+            help="The directory where the shim files (.exe, .shim) will be created",
+        )
 
     parser.add_argument(
         "--shim",
@@ -94,7 +104,9 @@ def main(argv: list[str]) -> None:
         default="scoop",
         help="Shim type. Default is 'scoop'",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Command to run")
+    subparsers = parser.add_subparsers(
+        dest="command", required=True, help="Command to run"
+    )
     create = subparsers.add_parser(
         "create", help="Create a shim for an executable. The lowest level action"
     )
@@ -102,7 +114,8 @@ def main(argv: list[str]) -> None:
     add_shared_args(create)
 
     get = subparsers.add_parser(
-        "get", help="Download zip file, install it as an application. Also works on local zip files."
+        "get",
+        help="Download zip file, install it as an application. Also works on local zip files.",
     )
     get.add_argument("url", type=str, help="URL or local path to the zip file")
     get.add_argument(
@@ -118,7 +131,6 @@ def main(argv: list[str]) -> None:
         type=str,
         help="Override app installation directory (default is LOCALAPPDATA/Programs)",
     )
-
 
     add_shared_args(get)
 
@@ -145,6 +157,7 @@ def main(argv: list[str]) -> None:
         found = create_shims_in_tree(root, to, args.shim)
         if not found:
             emit(f"No exe found in the directory {root}. Did not create shims")
+
 
 if __name__ == "__main__":
     main(sys.argv)
