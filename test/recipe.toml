@@ -1,0 +1,20 @@
+[roughgrep]
+
+url = "https://github.com/vivainio/RoughGrep/releases/download/v3.15.0/RoughGrep-3.15.0.zip"
+
+[heymars]
+
+url = "https://github.com/vivainio/heymars/releases/download/v1.2.1/heymars-1.2.1.zip"
+
+[uselessname]
+
+url = "https://github.com/vivainio/heymars/releases/download/v1.2.1/heymars-1.2.1.zip"
+saveAs = "./testzip.zip"
+tags = ["tagtest"]
+
+[otheruselessname]
+url = "https://github.com/vivainio/heymars/releases/download/v1.2.1/heymars-1.2.1.zip"
+tags = ["tagtest"]
+unzipTo = "./ziptarget"
+
+

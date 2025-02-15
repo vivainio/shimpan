@@ -1,10 +1,19 @@
 import argparse
+from dataclasses import dataclass
+import hashlib
 import os
 import shutil
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
+
 from urllib.request import urlretrieve
 
 emit = print
@@ -64,24 +73,56 @@ def download_and_shim_application(args: argparse.Namespace) -> None:
 
     to = Path(args.to).expanduser().absolute() if args.to else Path().absolute()
     emit("Trying to extract at ", apps_target_dir)
+    is_url = url.startswith("http")
+    zip_path = cached_download(url) if is_url else Path(url)
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        tmpdir = Path(tmpdirname)
-        zip_path = tmpdir / "shimpan_temp.zip"
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        # ensure zip file has top level directory
+        zip_ref.extractall(apps_target_dir)
 
-        is_url = url.startswith("http")
-        if is_url:
-            urlretrieve(url, zip_path)  # noqa: S310 audit for http
-        else:
-            zip_path = Path(url)
+    found = create_shims_in_tree(apps_target_dir, to, args.shim)
+    if not found:
+        emit("No exe found in the zip file. Did not create shims")
 
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # ensure zip file has top level directory
-            zip_ref.extractall(apps_target_dir)
 
-        found = create_shims_in_tree(apps_target_dir, to, args.shim)
-        if not found:
-            emit("No exe found in the zip file. Did not create shims")
+def cached_download(url: str) -> Path:
+    url_hash = hashlib.sha256(url.encode()).hexdigest()
+    cache_dir = Path(os.environ["LOCALAPPDATA"]) / "Temp/shimpan_cache"
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / url_hash
+    if not cache_file.exists():
+        try:
+            urlretrieve(url, cache_file)
+        except Exception as e:
+            emit(f"Error downloading {url}: {e}")
+            cache_file.unlink(missing_ok=True)
+            raise
+
+    return cache_file
+
+
+def run_recipe(recipefile: Path, name: str, args: argparse.Namespace) -> None:
+    root = recipefile.parent
+    d = tomllib.load(recipefile.open("rb"))
+
+    for k, v in d.items():
+        if k != name and name not in v.get("tags", []):
+            continue
+        print(f"Running recipe {v}")
+        url = v["url"]
+        save_as = v.get("saveAs", None)
+        if save_as:
+            emit(f"Save {url} as {save_as}")
+            target = cached_download(url)
+            shutil.copy(target, root / save_as)
+
+        unzip_to = v.get("unzipTo", None)
+        if unzip_to:
+            emit(f"Unzip {url} to {unzip_to}")
+            target = cached_download(url)
+
+            with zipfile.ZipFile(target, "r") as zip_ref:
+                zip_ref.extractall(root / unzip_to)
 
 
 def main(argv: list[str]) -> None:
@@ -139,6 +180,16 @@ def main(argv: list[str]) -> None:
     scan.add_argument("dir", type=str, help="Directory to scan for exes")
     add_shared_args(scan)
 
+    recipe = subparsers.add_parser(
+        "recipe", help="Execute instructions from recipe (toml) file"
+    )
+
+    recipe.add_argument("recipefile", type=str, help="Path to the recipe file")
+    recipe.add_argument(
+        "name", type=str, help="The name or tag within the recipe file to run"
+    )
+    add_shared_args(recipe)
+
     args = parser.parse_args(argv[1:])
     if args.command == "create":
         direct_shim_create(args)
@@ -155,6 +206,8 @@ def main(argv: list[str]) -> None:
         found = create_shims_in_tree(root, to, args.shim)
         if not found:
             emit(f"No exe found in the directory {root}. Did not create shims")
+    elif args.command == "recipe":
+        run_recipe(Path(args.recipefile), args.name, args)
 
 
 if __name__ == "__main__":

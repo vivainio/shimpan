@@ -1,8 +1,11 @@
+import shutil
 import tempfile
 from pathlib import Path
 from urllib.request import urlretrieve
 import zipfile
 from shimpan import cli
+
+ROOT = Path(__file__).parent
 
 
 def _create_mini_zip(pth: Path):
@@ -67,3 +70,23 @@ def test_download() -> None:
         )
         listing = list(Path(tmpdirname).iterdir())
         assert len(listing) == 2
+
+
+def test_recipe():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmp = Path(tmpdirname)
+        shutil.copy(ROOT / "recipe.toml", tmpdirname)
+        cli.main(
+            [
+                "testapp",
+                "recipe",
+                tmpdirname + "/recipe.toml",
+                "tagtest",
+                "--to",
+                tmpdirname,
+            ]
+        )
+        listing = {p.name for p in tmp.iterdir()}
+        assert listing == {"recipe.toml", "ziptarget", "testzip.zip"}
+        unzipped_files = {p.name for p in (tmp / "ziptarget").iterdir()}
+        assert unzipped_files == {"Heymars"}
