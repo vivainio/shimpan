@@ -85,7 +85,6 @@ def download_and_shim_application(args: argparse.Namespace) -> None:
 
 
 def main(argv: list[str]) -> None:
-    print(argv)
     version = Path(__file__).parent.joinpath("version.txt").read_text().strip()
     parser = argparse.ArgumentParser(
         description=f"Shimpan: Create shims for exes that are in path. Version: {version}"
@@ -141,7 +140,6 @@ def main(argv: list[str]) -> None:
     add_shared_args(scan)
 
     args = parser.parse_args(argv[1:])
-    print("Parsed args", args)
     if args.command == "create":
         direct_shim_create(args)
     elif args.command == "get":
