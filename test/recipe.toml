@@ -1,3 +1,9 @@
+[config]
+
+# you can override this in in every item
+
+shimDir = "./shimdir"
+
 [roughgrep]
 
 url = "https://github.com/vivainio/RoughGrep/releases/download/v3.15.0/RoughGrep-3.15.0.zip"
@@ -16,6 +22,11 @@ tags = ["tagtest"]
 url = "https://github.com/vivainio/heymars/releases/download/v1.2.1/heymars-1.2.1.zip"
 tags = ["tagtest"]
 unzipTo = "./ziptarget"
-shims = "./shimdir"
+shims = true
 shimType = "scoop"
 
+[jsonnet]
+
+url = "https://github.com/google/go-jsonnet/releases/download/v0.20.0/go-jsonnet_0.20.0_Windows_i386.tar.gz"
+unzipTo = "./jsonnet"
+shims = true

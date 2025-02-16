@@ -1,11 +1,11 @@
 import argparse
-from dataclasses import dataclass
 import hashlib
 import os
 import shutil
 import sys
-import tempfile
+import tarfile
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 if sys.version_info >= (3, 11):
@@ -82,7 +82,7 @@ def download_and_shim_application(args: argparse.Namespace) -> None:
         )
         return
 
-    to = Path(args.to).expanduser().absolute() if args.to else Path().absolute()
+    to = Path(os.path.expandvars(args.to)).expanduser().absolute() if args.to else Path().absolute()
     emit("Trying to extract at", apps_target_dir)
     is_url = url.startswith("http")
     zip_path = cached_download(url) if is_url else Path(url)
@@ -100,7 +100,9 @@ def cached_download(url: str) -> Path:
     url_hash = hashlib.sha256(url.encode()).hexdigest()
     cache_dir = Path(os.environ["LOCALAPPDATA"]) / "Temp/shimpan_cache"
     cache_dir.mkdir(exist_ok=True)
-    cache_file = cache_dir / url_hash
+    file_name = url.split("/")[-1]
+    cache_file = cache_dir / f"{url_hash}_{file_name}"
+
     if not cache_file.exists():
         try:
             urlretrieve(url, cache_file)
@@ -112,20 +114,25 @@ def cached_download(url: str) -> Path:
     return cache_file
 
 
-def download_and_extract(url: str, to: Path):
+def download_and_extract(url: str, to: Path) -> None:
     target = cached_download(url)
-    with zipfile.ZipFile(target, "r") as zip_ref:
-        zip_ref.extractall(to)
+    if target.suffix == ".zip":
+        with zipfile.ZipFile(target, "r") as zip_ref:
+            zip_ref.extractall(to)
+    elif str(target).endswith(".tar.gz"):
+        with tarfile.open(target, "r:gz") as tar:
+            tar.extractall(to)
 
 
 def run_recipe(recipefile: Path, name: str, args: argparse.Namespace) -> None:
     root = recipefile.parent
     d = tomllib.load(recipefile.open("rb"))
+    config = d.pop("config", {})
 
     def relative_to_root(p: str | None) -> Path | None:
         if not p:
             return None
-        pth = Path(p).expanduser()
+        pth = Path(os.path.expandvars(p)).expanduser()
         return root / pth if not pth.is_absolute() else pth
 
     for k, v in d.items():
@@ -144,16 +151,21 @@ def run_recipe(recipefile: Path, name: str, args: argparse.Namespace) -> None:
             emit(f"Unzip {url} to {unzip_to}")
             download_and_extract(url, unzip_to)
 
-        shims_to = relative_to_root(v.get("shims"))
-        if shims_to:
-            shims_to.mkdir(exist_ok=True, parents=True)
-            if unzip_to:
-                emit(f"Create shims for {unzip_to} in {shims_to}")
-                create_shims_in_tree(
-                    unzip_to, shims_to, v.get("shimType", args.shim)
+        create_shims = v.get("shims", False)
+        if create_shims:
+            shims_to = relative_to_root(v.get("shimDir") or config.get("shimDir"))
+            if not shims_to:
+                emit(
+                    "Error: shims requested without shimDir. Specify it in [config] section or item"
                 )
-            else:
-                emit("Error: shims specified without unzipTo")
+                return
+            if not unzip_to:
+                emit("Error: shims requested without unzipTo.")
+                return
+
+            shims_to.mkdir(exist_ok=True, parents=True)
+            emit(f"Create shims for {unzip_to} in {shims_to}")
+            create_shims_in_tree(unzip_to, shims_to, v.get("shimType", args.shim))
 
 
 def main(argv: list[str]) -> None:

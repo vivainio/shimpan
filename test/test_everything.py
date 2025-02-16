@@ -93,5 +93,3 @@ def test_recipe():
         assert unzipped_files == {"Heymars"}
         shim_files = {p.name for p in (tmp / "shimdir").iterdir()}
         assert shim_files == {"Heymars.exe", "Heymars.shim"}
-        
-
